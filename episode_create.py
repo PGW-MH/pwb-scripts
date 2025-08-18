@@ -2,6 +2,10 @@ import pywikibot
 import requests
 import re
 import json
+import os
+from urllib.parse import urlparse, parse_qs
+
+local_json_data = None
 
 
 def to_ordinal(n):
@@ -57,11 +61,40 @@ def check_page_exists(site, title):
     return page.exists()
 
 
+def extract_youtube_id(url):
+    try:
+        if "youtu.be/" in url:
+            return url.split("youtu.be/")[1].split("?")[0]
+        if "youtube.com/watch" in url:
+            query = parse_qs(urlparse(url).query)
+            return query.get("v", [None])[0]
+    except Exception:
+        return None
+    return None
+
+
 def create_page_content(season_abbr, season_name, episode):
+    global local_json_data
+
     ordinal_num = to_ordinal(episode['num'])
     english_title = episode['english']
     chinese_title = episode['chinese']
     pinyin_title = episode['pinyin']
+
+    zh_page_name = chinese_title
+    summary_en = None
+    yt_id = None
+
+    if local_json_data:
+        for ep in local_json_data:
+            if ep.get("集数") == episode['num']:
+                if ep.get("页面名"):
+                    zh_page_name = ep["页面名"]
+                if ep.get("剧情简介（YouTube英文）"):
+                    summary_en = ep["剧情简介（YouTube英文）"]
+                if ep.get("链接（YouTube中文）"):
+                    yt_id = extract_youtube_id(ep["链接（YouTube中文）"])
+                break
 
     page_content = ''
 
@@ -71,22 +104,30 @@ def create_page_content(season_abbr, season_name, episode):
     page_content += f"""
 {{{{Infobox episode|{season_abbr}|{episode['num']}|image={season_abbr}{episode['num']:02d}.png}}}}
 {{{{zhongwen|“{english_title}”|{chinese_title}|{pinyin_title}}}}} is the {ordinal_num} episode of ''[[{season_name}]]''.
+"""
 
+    if summary_en:
+        page_content += f"\n{summary_en}\n"
+
+    page_content += """
 ==Characters present==
-{{{{TBA}}}}
+{{TBA}}
 
 ==Summary==
-{{{{TBA}}}}
+{{TBA}}
 """
+
     if add_watch:
-        page_content += f"""
-==Watch==
-{{{{yt|}}}}
-"""
+        page_content += "\n==Watch==\n"
+        if yt_id:
+            page_content += f"{{{{yt|{yt_id}}}}}\n"
+        else:
+            page_content += "{{yt|}}\n"
+
     page_content += f"""
 ==Navigation==
 {{{{{season_abbr[:-1] if season_abbr[-1].isdigit() else season_abbr}|uncollapsed}}}}
-[[zh:{chinese_title}]]
+[[zh:{zh_page_name}]]
 """
 
     return page_content
@@ -121,5 +162,16 @@ season_name = input("Enter the season name (e.g., Marching to the New Wonderland
 season_abbr = input("Enter the season abbreviation (e.g., MttNW): ")
 add_conjectural = input("Do you want to add {{Conjectural}} template? (y/n): ").strip().lower() == 'y'
 add_watch = input("Do you want to add the Watch section? (y/n): ").strip().lower() == 'y'
+local_json_path = input("Do you have a PGP-exported JSON file for this season? (enter path or leave blank): ").strip()
+if local_json_path and os.path.isfile(local_json_path):
+    try:
+        with open(local_json_path, "r", encoding="utf-8") as f:
+            local_json_data = json.load(f)
+        print(f"Loaded local JSON data from {local_json_path}")
+    except Exception as e:
+        print(f"Failed to load local JSON file: {e}")
+        local_json_data = None
+else:
+    local_json_data = None
 
 process_season(season_name, season_abbr, add_conjectural, add_watch)
