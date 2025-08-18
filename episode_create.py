@@ -5,6 +5,7 @@ import json
 import os
 from urllib.parse import urlparse, parse_qs
 
+
 local_json_data = None
 
 
@@ -43,9 +44,13 @@ def fetch_json_data(season_name):
         "page": f"Template:Episode/{season_name.replace(' ', '_')}.json",
         "prop": "wikitext",
         "formatversion": "2",
-        "format": "json"
+        "format": "json",
+        "origin": "*"
     }
-    response = requests.get(api_url, params=params)
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+    response = requests.get(api_url, params=params, headers=headers)
     if response.status_code == 200:
         data = response.json()
         if "parse" in data and "wikitext" in data["parse"]:
@@ -163,13 +168,27 @@ season_abbr = input("Enter the season abbreviation (e.g., MttNW): ")
 add_conjectural = input("Do you want to add {{Conjectural}} template? (y/n): ").strip().lower() == 'y'
 add_watch = input("Do you want to add the Watch section? (y/n): ").strip().lower() == 'y'
 local_json_path = input("Do you have a PGP-exported JSON file for this season? (enter path or leave blank): ").strip()
-if local_json_path and os.path.isfile(local_json_path):
-    try:
-        with open(local_json_path, "r", encoding="utf-8") as f:
-            local_json_data = json.load(f)
-        print(f"Loaded local JSON data from {local_json_path}")
-    except Exception as e:
-        print(f"Failed to load local JSON file: {e}")
+
+if (local_json_path.startswith('"') and local_json_path.endswith('"')) or \
+   (local_json_path.startswith("'") and local_json_path.endswith("'")):
+    local_json_path = local_json_path[1:-1]
+
+if local_json_path:
+    local_json_path = os.path.expanduser(local_json_path)
+    local_json_path = os.path.abspath(local_json_path)
+
+if local_json_path:
+    print(f"Trying to load local JSON from: {local_json_path}")
+    if os.path.isfile(local_json_path):
+        try:
+            with open(local_json_path, "r", encoding='utf-8') as f:
+                local_json_data = json.load(f)
+            print(f"Loaded local JSON data from {local_json_path}")
+        except Exception as e:
+            print(f"Failed to parse local JSON file: {e}")
+            local_json_data = None
+    else:
+        print("File not found:", local_json_path)
         local_json_data = None
 else:
     local_json_data = None
