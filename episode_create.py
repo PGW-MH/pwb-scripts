@@ -1,6 +1,7 @@
 import pywikibot
 import requests
 import re
+import json
 
 
 def to_ordinal(n):
@@ -32,12 +33,23 @@ def to_ordinal(n):
 
 
 def fetch_json_data(season_name):
-    url = f'https://xyy.miraheze.org/wiki/Template:Episode/{season_name.replace(" ", "_")}.json?action=raw'
-    response = requests.get(url)
+    api_url = "https://xyy.miraheze.org/w/api.php"
+    params = {
+        "action": "parse",
+        "page": f"Template:Episode/{season_name.replace(' ', '_')}.json",
+        "prop": "wikitext",
+        "formatversion": "2",
+        "format": "json"
+    }
+    response = requests.get(api_url, params=params)
     if response.status_code == 200:
-        return response.json()
+        data = response.json()
+        if "parse" in data and "wikitext" in data["parse"]:
+            return json.loads(data["parse"]["wikitext"])
+        else:
+            raise Exception(f"Unexpected API response: {data}")
     else:
-        raise Exception(f"Failed to fetch JSON data from {url}")
+        raise Exception(f"Failed to fetch JSON data: {response.status_code}")
 
 
 def check_page_exists(site, title):
@@ -103,6 +115,7 @@ def process_season(season_name, season_abbr, add_conjectural, add_watch):
             page = pywikibot.Page(site, episode_title)
             page.text = page_content
             page.save(summary=f"Creating episode page for {episode_title}")
+
 
 season_name = input("Enter the season name (e.g., Marching to the New Wonderland): ")
 season_abbr = input("Enter the season abbreviation (e.g., MttNW): ")
