@@ -32,7 +32,7 @@ def to_ordinal(n):
 
 
 def fetch_json_data(season_name):
-    url = f'https://xyy.fandom.com/wiki/Template:Episode/{season_name.replace(" ", "_")}.json?action=raw'
+    url = f'https://xyy.miraheze.org/wiki/Template:Episode/{season_name.replace(" ", "_")}.json?action=raw'
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
@@ -51,7 +51,7 @@ def create_page_content(season_abbr, season_name, episode):
     chinese_title = episode['chinese']
     pinyin_title = episode['pinyin']
 
-    page_content = f"""{{{{Stub}}}}"""
+    page_content = ''
 
     if add_conjectural:
         page_content += f"{{{{Conjectural}}}}"
@@ -69,12 +69,12 @@ def create_page_content(season_abbr, season_name, episode):
     if add_watch:
         page_content += f"""
 ==Watch==
-[[File:{re.sub(r':.*', '', re.sub(r'[,!]', '', season_name))} EP{episode['num']:02d}]]
+{{{{yt|}}}}
 """
     page_content += f"""
 ==Navigation==
-{{{{{season_abbr}|uncollapsed}}}}
-{{{{zh|{chinese_title}}}}}
+{{{{{season_abbr[:-1] if season_abbr[-1].isdigit() else season_abbr}|uncollapsed}}}}
+[[zh:{chinese_title}]]
 """
 
     return page_content
@@ -104,10 +104,9 @@ def process_season(season_name, season_abbr, add_conjectural, add_watch):
             page.text = page_content
             page.save(summary=f"Creating episode page for {episode_title}")
 
-
 season_name = input("Enter the season name (e.g., Marching to the New Wonderland): ")
 season_abbr = input("Enter the season abbreviation (e.g., MttNW): ")
-add_conjectural = input("Do you want to add {{Conjectural}} template? (yes/no): ").strip().lower() == 'yes'
-add_watch = input("Do you want to add the Watch section? (yes/no): ").strip().lower() == 'yes'
+add_conjectural = input("Do you want to add {{Conjectural}} template? (y/n): ").strip().lower() == 'y'
+add_watch = input("Do you want to add the Watch section? (y/n): ").strip().lower() == 'y'
 
 process_season(season_name, season_abbr, add_conjectural, add_watch)
