@@ -24,7 +24,7 @@ for title in pages:
         'token': token
     }
     try:
-        result = site._simple_request(**params).submit()
+        result = site.simple_request(**params).submit()
         print(f"Rated {title} -> {rating_to}: {result}")
     except Exception as e:
         print(f"Failed to rate {title}: {e}")
