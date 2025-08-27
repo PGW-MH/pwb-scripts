@@ -107,7 +107,7 @@ def create_page_content(season_abbr, season_name, episode):
         page_content += f"{{{{Conjectural}}}}\n"
 
     page_content += f"""{{{{Infobox episode|{season_abbr}|{episode['num']}|image={season_abbr}{episode['num']:02d}.png}}}}
-{{{{zhongwen|“{english_title}”|{chinese_title}|{pinyin_title}}}}} is the {ordinal_num} episode of ''[[{season_name}]]''.
+{{{{EpisodeZ|{english_title}|{chinese_title}|{pinyin_title}}}}} is the {ordinal_num} episode of [[{season_name}]].
 """
 
     if summary_en:
