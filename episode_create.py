@@ -115,7 +115,7 @@ def create_page_content(season_abbr, season_name, episode):
 
     page_content += """
 ==Characters present==
-{{TBA}}
+{{clist}}
 
 ==Summary==
 {{TBA}}
