@@ -146,6 +146,7 @@ def process_season(season_name, season_abbr, add_conjectural, add_watch):
 
     site = pywikibot.Site('en', 'xyy')
     site.login()
+    token = site.tokens['csrf']
 
     for episode in data['episodes']:
         episode_title = episode['english']
@@ -160,6 +161,21 @@ def process_season(season_name, season_abbr, add_conjectural, add_watch):
             page = pywikibot.Page(site, episode_title)
             page.text = page_content
             page.save(summary=f"Creating episode page for {episode_title}")
+
+            # 创建后立刻评级为 ST
+            params = {
+                'action': 'change-rating',
+                'format': 'json',
+                'title': episode_title,
+                'rating-to': 'ST',
+                'reason': "Auto rate new episode page",
+                'token': token
+            }
+            try:
+                result = site.simple_request(**params).submit()
+                print(f"Rated {episode_title} -> {'ST'}: {result}")
+            except Exception as e:
+                print(f"Failed to rate {episode_title}: {e}")
 
 
 season_name = input("Enter the season name (e.g., Marching to the New Wonderland): ")
